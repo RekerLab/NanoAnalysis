@@ -1,5 +1,5 @@
 # NanoAI
-NanoAI is a large scale analysis of inorganic nanoparticles in pre-clinical cancer research
+NanoAnalysis is a large scale, ML-driven analysis of inorganic nanoparticles in pre-clinical cancer research
 
 # Dependencies
 Abstract
