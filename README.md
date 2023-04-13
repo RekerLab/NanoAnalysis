@@ -5,7 +5,7 @@ NanoAI is a large scale analysis of inorganic nanoparticles in pre-clinical canc
 Abstract
 
 ## Supervised Machine Learning
-Runs in Python 3.9 using algorithms from scikit-learn and XGBoost. tqdm is a useful tool to visually track computing progress. A fresh conda environment can be set up using
+Runs in Python 3.9 using algorithms from [scikit-learn](https://scikit-learn.org/stable/) and [XGBoost](https://xgboost.readthedocs.io/en/stable/). [tqdm](https://github.com/tqdm/tqdm) is a useful tool to visually track your job progress. A fresh conda environment can be set up using
 
 ```
 conda create -n NanoAI python=3.9
