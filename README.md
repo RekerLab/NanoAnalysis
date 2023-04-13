@@ -23,4 +23,6 @@ Alternatively, users could implement the analysis on cloud-based platforms with 
 
 # Descriptions of folders
 ### data
+* A curated dataset from literature search and a transformed database ready for machine leanring training and analysis.
 
+### code
