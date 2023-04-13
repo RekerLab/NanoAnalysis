@@ -1,4 +1,4 @@
-# NanoAI
+# NanoAnalysis
 NanoAnalysis is a large scale, ML-driven analysis of inorganic nanoparticles in pre-clinical cancer research
 
 # Dependencies
