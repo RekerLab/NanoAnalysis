@@ -18,4 +18,3 @@ conda install tqdm
 # Descriptions of folders
 ### data
 
-
