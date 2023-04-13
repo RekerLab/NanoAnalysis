@@ -14,6 +14,12 @@ conda install -c conda-forge py-xgboost
 conda install -c conda-forge shap
 conda install tqdm
 ```
+Alternatively, users could implement the analysis on cloud-based platforms with pre-configured Python environment, e.g. Googld Colab, required packages can be directly installed using
+
+```
+!pip install xgboost
+!pip install shap
+```
 
 # Descriptions of folders
 ### data
