@@ -21,6 +21,7 @@ Alternatively, users could implement the analysis on cloud-based platforms with 
 
 # Descriptions of folders
 ### data
-* A formatted dataset from literature curation and a transformed database ready for machine leanring training and analysis.
+* The available data sources include a curated dataset from the literature, as well as a transformed database that is ready for machine learning training and analysis.
 
 ### code
+* This folder includes core functions that underlie the analysis pipeline, along with executable examples for users to run.
