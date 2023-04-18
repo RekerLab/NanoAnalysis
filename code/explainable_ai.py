@@ -1,5 +1,7 @@
 ### SHAP feature importance analysis
 ## importing SHAP package and examined model (RF)
+import pandas as pd
+import numpy as np
 import shap
 from sklearn.ensemble import RandomForestClassifier
 
