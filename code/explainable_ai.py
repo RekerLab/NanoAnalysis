@@ -1,5 +1,5 @@
 ### SHAP feature importance analysis
-## importing SHAP package and examined model (RF)
+## importing SHAP package, examined model (RF) and other packages
 import pandas as pd
 import numpy as np
 import shap
