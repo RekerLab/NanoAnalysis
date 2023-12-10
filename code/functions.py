@@ -136,8 +136,7 @@ def label_shuffling_eval(X, y, repeats=10, stand=True, model=RandomForestClassif
       proba_y_shuf, pred_y_shuf, y_true_y_shuf = result_update(proba_y_shuf, pred_y_shuf, y_true_y_shuf, *results, n, r)
       n += 1
     r += 1
-  return [[proba_ctrl, pred_ctrl, y_true_ctrl],
-          [proba_y_shuf, pred_y_shuf, y_true_y_shuf]]
+  return [[proba_ctrl, pred_ctrl, y_true_ctrl], [proba_y_shuf, pred_y_shuf, y_true_y_shuf]]
 
 ## feature ablation challenge
 # feature ablation approach
