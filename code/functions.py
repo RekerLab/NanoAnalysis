@@ -73,8 +73,7 @@ def repeated_clf_cv(X, y, models, repeats=10, stand=True):
       for model in models:
         results = model_eval(model, X_train, y_train, X_test, y_test)
         model_name = type(model).__name__
-        probas[model_name], preds[model_name], y_trues[model_name] = result_update(probas[model_name], preds[model_name], y_trues[model_name],
-                                                                                   *results, n, r)
+        probas[model_name], preds[model_name], y_trues[model_name] = result_update(probas[model_name], preds[model_name], y_trues[model_name], *results, n, r)
       n += 1
     r += 1
   return [probas, preds, y_trues]
@@ -128,16 +127,13 @@ def label_shuffling_eval(X, y, repeats=10, stand=True, model=RandomForestClassif
       y_train, y_test = y[train_index], y[test_index]
       if stand:
         X_train, X_test = data_stand(X_train, X_test)
-      
       # ctrl
       results = model_eval(model, X_train, y_train, X_test, y_test)
-      proba_ctrl, pred_ctrl, y_true_ctrl = result_update(proba_ctrl, pred_ctrl, y_true_ctrl, 
-                                                         *results, n, r)
+      proba_ctrl, pred_ctrl, y_true_ctrl = result_update(proba_ctrl, pred_ctrl, y_true_ctrl, *results, n, r)
       # y shuffling
       y_train_shuf = np.random.permutation(y_train)
       results = model_eval(model, X_train, y_train_shuf, X_test, y_test)
-      proba_y_shuf, pred_y_shuf, y_true_y_shuf = result_update(proba_y_shuf, pred_y_shuf, y_true_y_shuf,
-                                                               *results, n, r)
+      proba_y_shuf, pred_y_shuf, y_true_y_shuf = result_update(proba_y_shuf, pred_y_shuf, y_true_y_shuf, *results, n, r)
       n += 1
     r += 1
   return [[proba_ctrl, pred_ctrl, y_true_ctrl],
@@ -167,7 +163,6 @@ def feature_ablation_eval(X, y, repeats=10, stand=True, model=RandomForestClassi
       # remove features in a random manner
       X_random, decision_func = mode_func(model, 'random', X_random, y)
       oob_decision['random'][r].append(decision_func)
-
       # remove features in a feature-importance based manner
       X_import, decision_func = mode_func(model, 'import', X_import, y)
       oob_decision['important'][r].append(decision_func)
