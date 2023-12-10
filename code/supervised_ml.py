@@ -5,26 +5,41 @@ df = pd.read_csv('../data/ml_dataset.csv')
 X = df.iloc[:, :-3].copy()
 y = np.array(df.iloc[:, -2])
 
-# repeated 10-fold cross validation
-models = [XGBClassifier(), GaussianNB(), KNeighborsClassifier(n_neighbors=3), LinearSVC(),
-          DecisionTreeClassifier(), RandomForestClassifier(n_estimators=500), AdaBoostClassifier(), MLPClassifier()]
-# evaluation
-model_names = [type(model).__name__ for model in models]
-repeats = 10
-probas, preds, y_trues = repeated_clf_cv(X, y, models, repeats=repeats, stand=False)
-entries = []
-for name in model_names:
-  for i in range(repeats):
-    roc_score = roc_auc_score(y_trues[name][i], probas[name][i])
-    bac_score = balanced_accuracy_score(y_trues[name][i], preds[name][i])
-    f1 = f1_score(y_trues[name][i], preds[name][i])
-    mcc_score = matthews_corrcoef(y_trues[name][i], preds[name][i])
-    entries.append([name, i, roc_score, bac_score, f1, mcc_score])
-repeat_cv_df = pd.DataFrame(data=entries, columns=['model', 'repeats', 'roc_auc_score', 'balanced_accuracy_score', 'f1_score', 'mcc_score'])
+## model survey
+# define classifiers and examplary parameter searching space
+model_dict = {
+    'NB': GaussianNB(),
+    'kNN': KNeighborsClassifier(),
+    'SVC': SVC(probability=True),
+    'DT': DecisionTreeClassifier(),
+    'RF': RandomForestClassifier(),
+    'XGBoost': XGBClassifier(),
+    'AdaBoost': AdaBoostClassifier(),
+    'MLP': MLPClassifier()
+}
+
+param_dict = {
+    'NB': {},
+    'kNN': {'model__n_neighbors': [3, 4, 5]},
+    'SVC': {'model__kernel': ['linear', 'poly', 'rbf', 'sigmoid']},
+    'DT': {'model__criterion': ['gini', 'entropy', 'log_loss']},
+    'RF': {'model__n_estimators': [100, 500, 1000]},
+    'XGBoost': {'model__n_estimators': [100, 500, 1000]},
+    'AdaBoost': {'model__n_estimators': [50, 100, 500]},
+    'MLP': {
+        'model__hidden_layer_sizes': [(100,), (100, 100), (50, 50, 50), (50, 100, 50), (100, 100, 100)],
+        'model__activation': ['identity', 'logistic', 'tanh', 'relu'],
+        'model__solver': ['lbfgs', 'sgd', 'adam'],
+        'model__alpha': [0.0001, 0.0005, 0.001],
+        'model__max_iter': [200, 500, 1000]}
+}
+
+# evaluate model performance
+hyper_opt(model_dict, param_dict, X, y, repeats=5, n_splits=5)
 
 # label shuffling
 repeats = 10
-results = label_shuffling_eval(X, y, repeats=repeats, stand=False)
+results = label_shuffling_eval(X, y, repeats=repeats, stand=True)
 entries = []
 mode = ['ctrl', 'y_shuffle']
 for i in range(repeats):
@@ -35,14 +50,18 @@ for i in range(repeats):
     bac_score = balanced_accuracy_score(result[2][i], result[1][i])
     f1 = f1_score(result[2][i], result[1][i])
     mcc_score = matthews_corrcoef(result[2][i], result[1][i])
-    entries.append([mode[m], i, roc_score, bac_score, f1, mcc_score])
-label_shuffling_df = pd.DataFrame(data=entries, columns=['mode', 'repeats', 'roc_auc_score', 'balanced_accuracy_score', 'f1_score', 'mcc_score'])
+    pr_score = average_precision_score(result[2][i], result[0][i])
+    cohen_score = cohen_kappa_score(result[2][i], result[1][i])    
+    entries.append([mode[m], i, roc_score, bac_score, f1, mcc_score, pr_score, cohen_score])
+label_shuffling_df = pd.DataFrame(data=entries, columns=['mode', 'repeats', 
+                                                         'roc_auc_score', 'balanced_accuracy_score', 'f1_score', 'mcc_score',
+                                                         'pr_auc_score', 'cohen_kappa'])
 
 # feature ablation
 repeats = 10
-results = feature_ablation_eval(X, y, repeats=repeats, stand=False)
-metric_func = [balanced_accuracy_score, f1_score, matthews_corrcoef]
-metric_name = ['balanced_accuracy_score', 'f1_score', 'mcc_score']
+results = feature_ablation_eval(X, y, repeats=repeats, stand=True)
+metric_func = [balanced_accuracy_score, f1_score, matthews_corrcoef, cohen_kappa_score]
+metric_name = ['balanced_accuracy_score', 'f1_score', 'mcc_score', 'cohen_kappa']
 entries = []
 for mode in ['random', 'important']:
   for i in range(len(metric_func)):
@@ -51,3 +70,12 @@ for mode in ['random', 'important']:
       metric, stats = key, value
     entries.append([mode, metric, *stats])
 feature_abaltion_df = pd.DataFrame(data=entries, columns=['mode', 'metric', 'avg', 'std'])
+
+
+
+
+
+
+
+
+
