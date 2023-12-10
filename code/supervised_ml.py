@@ -45,7 +45,6 @@ mode = ['ctrl', 'y_shuffle']
 for i in range(repeats):
   for m in range(len(mode)):
     result = results[m]
-    # ctrl
     roc_score = roc_auc_score(result[2][i], result[0][i])
     bac_score = balanced_accuracy_score(result[2][i], result[1][i])
     f1 = f1_score(result[2][i], result[1][i])
