@@ -6,7 +6,7 @@ X = df.iloc[:, :-3].copy()
 y = np.array(df.iloc[:, -2])
 
 ## model survey
-# define classifiers and examplary parameter searching space
+# define classifiers and exemplary parameter searching space
 model_dict = {
     'NB': GaussianNB(),
     'kNN': KNeighborsClassifier(),
