@@ -22,20 +22,10 @@ library(quanteda)         # For NLP
 library(quanteda.textmodels) 
 library(quanteda.textplots)
 library(quanteda.textstats)
-library(readtext)         # To read .txt files
-library(PubMedWordcloud)  # pull abstracts from PMID
-library(stm)              # For structural topic models
-library(stminsights)      # For visual exploration of STM
-library(wordcloud)        # To generate wordclouds
-library(wordcloud2)        # To generate wordclouds
-library(gsl)              # Required for the topicmodels package
-library(topicmodels)      # For topicmodels
-library(caret)            # For machine learning
 library(ggplot2)          # For plotting 
-library(ggrepel)          # For adding labels to scatterplots
+library(ggrepel)          # For adding labels to scatter plots
 library(tm)
 library(cowplot) # multiple plots
-library(qdapTools)  #text mining associations
 ```
 
 Now we can use the PubMedWordcloud package to retrieve PMIDs and pull abstracts from the csv fie
