@@ -1,0 +1,550 @@
+---
+title: "Text Mining Comparisons of General v Curated Datasets"
+author: Lauren Onweller and Daniel Reker
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: defaults
+---
+
+The goal of this code is to read in abstracts from csv files, downloaded from large literature databases, and analyze them through various methods.
+```{r}
+rm(list = ls()) # start with clear environment
+```
+
+ 
+To start, we must load in all required packages for the code
+```{r}
+# Load all required packages
+library(tidyverse)        
+library(quanteda)         # For NLP
+library(quanteda.textmodels) 
+library(quanteda.textplots)
+library(quanteda.textstats)
+library(readtext)         # To read .txt files
+library(PubMedWordcloud)  # pull abstracts from PMID
+library(stm)              # For structural topic models
+library(stminsights)      # For visual exploration of STM
+library(wordcloud)        # To generate wordclouds
+library(wordcloud2)        # To generate wordclouds
+library(gsl)              # Required for the topicmodels package
+library(topicmodels)      # For topicmodels
+library(caret)            # For machine learning
+library(ggplot2)          # For plotting 
+library(ggrepel)          # For adding labels to scatterplots
+library(tm)
+library(cowplot) # multiple plots
+library(qdapTools)  #text mining associations
+```
+
+Now we can use the PubMedWordcloud package to retrieve PMIDs and pull abstracts from the csv fie
+Documentation for PubMedWordcloud:
+https://cran.r-project.org/web/packages/PubMedWordcloud/PubMedWordcloud.pdf
+
+
+
+General Search abstracts
+We now move on to make a corpus with the abstracts, tokenize everything, and make a document frequency matrix
+```{r}
+# Choose the file of abstracts. 
+Combo_NP_CSV <- read.csv(file = file.choose())
+abstract_Gen <- Combo_NP_CSV$Abstract
+#abstract_Gen <- read.csv(file = file.choose()) [ ,c('Abstract')]
+# Create a doc by using corpus 
+mycorpus_Gen <- corpus(abstract_Gen)
+mycorpus_Gen.stats <- summary(mycorpus_Gen)
+# Create tokens
+token_Gen <-
+  tokens(
+    mycorpus_Gen,
+    remove_numbers = TRUE,
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    remove_url = TRUE,
+    split_hyphens = TRUE,
+    include_docvars = TRUE
+  )
+token_a_Gen <-tokens_remove(token_Gen, pattern = c('doi*', 'author*', 'pmid*','pmcid*','usa*', 'medlin*', 'pub*', 'arti*', 'depart*', 'univers*'), padding = FALSE)
+# print(head(token_a_Gen))
+# Clean tokens created by OCR
+token_clean_Gen <- tokens_select(
+  token_a_Gen,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+```
+
+
+Stem and further clean tokens and make into a dfm
+```{r}
+mydfm_Gen <- token_clean_Gen
+mydfm_Gen <- tokens_remove(mydfm_Gen, stopwords("english")) 
+mydfm_Gen <- dfm(mydfm_Gen)
+mydfm_Gen <-  dfm_wordstem(mydfm_Gen, language = quanteda_options("language_stemmer"))
+```
+
+
+
+Now we can read in the Database papers
+
+We now move on to make a corpus with the abstracts, tokenize everything, and make a document frequency matrix
+```{r}
+# Choose the file of abstracts. only do this step if you do not have abstracts loaded
+research_NP_CSV <- read.csv(file = file.choose())
+abstract_research <- research_NP_CSV$Abstract
+# Create a doc by using corpus 
+mycorpus_research <- corpus(abstract_research)
+# Save statistics in "mycorpus.stats"
+mycorpus_research.stats <- summary(mycorpus_research)
+# Create tokens
+token_research <-
+  tokens(
+    mycorpus_research,
+    remove_numbers = TRUE,
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    remove_url = TRUE,
+    split_hyphens = TRUE,
+    include_docvars = TRUE
+  )
+token_a_research <-tokens_remove(token_research, pattern = c('doi*', 'author*', 'pmid*','pmcid*','usa*', 'medlin*', 'pub*', 'arti*', 'depart*', 'univers*'), padding = FALSE)
+# Clean tokens created by OCR
+token_clean_research <- tokens_select(
+  token_a_research,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+```
+Stem and further clean tokens and make into a dfm
+```{r}
+mydfm_research <- token_clean_research
+mydfm_research <- tokens_remove(mydfm_research,stopwords("english"))
+mydfm_research <- dfm(mydfm_research)
+mydfm_research <- dfm_wordstem(mydfm_research,language = quanteda_options("language_stemmer")) 
+```
+
+Plot general and research Word clouds next to eachother
+
+```{r}
+# Wordcloud Gen
+set.seed(1234)
+dev.new(width = 2000, height = 2000, unit = "px")  #plots in new window
+textplot_wordcloud(mydfm_Gen, rotation= 0.35, 
+                   max_words=200,
+                   color=brewer.pal(8, "Dark2"))
+```
+```{r}
+# Wordcloud research
+set.seed(1234)
+dev.new(width = 2000, height = 2000, unit = "px")  #plots in new window
+textplot_wordcloud(mydfm_research, rotation= 0.35, 
+                   max_words=200,
+                   color=brewer.pal(8, "Dark2"))
+```
+```{r}
+# read in csv files with information of article, journal, year publication, etc
+Gen_NP_CSV <- Combo_NP_CSV
+# geom_bar is designed to make it easy to create bar charts that show
+# counts (or sums of weights)
+year <- research_NP_CSV$Publication.Year
+legend_colors <- c("Web of Science"="purple", "Research Team"="mediumblue")
+ggplot(NULL, aes(x)) +
+  geom_bar(data=Gen_NP_CSV, aes(x=Publication.Year, color="Web of Science"), fill = NA, stat = "count") +  # general
+  geom_bar(data=research_NP_CSV, aes(x=Publication.Year, color="Research Team"), fill = NA, stat = "count") +  # research
+  theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
+  ggtitle("Year Published Represented in Searches") +
+  ylab("Number of Publications") +
+  xlab("") + 
+  scale_color_manual(values = legend_colors)
+```
+Plot proportion not count
+```{r}
+legend_colors <- c("General Search"="purple", "Database"="mediumblue")
+ggplot(NULL, aes(x = Publication.Year)) + 
+  geom_bar(data = Gen_NP_CSV, aes(y = (..count..)/sum(..count..), color="General Search"), fill = NA) +  # general
+  geom_bar(data=research_NP_CSV, aes(y = (..count..)/sum(..count..), color="Database"), fill = NA) +  # research 
+  scale_y_continuous()+ 
+ theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1), ,  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Year Published Represented in Searches") +
+  ylab("Proportion of Publications") +
+  xlab("") + 
+  scale_color_manual(values = legend_colors) +
+  scale_y_continuous(limits = c(0, 0.15), expand = expansion(mult = c(0, 0)))
+
+```
+
+```{r}
+data_general = data.frame(table(Gen_NP_CSV$Publication.Year))
+colnames(data_general)[1] <- "Year"
+colnames(data_general)[2] <- "Count_Gen"
+data_general['Proportion_Gen'] <- data_general$Count_Gen/sum(data_general$Count_Gen)
+data_db = data.frame(table(research_NP_CSV$Publication.Year))
+colnames(data_db)[1] <- "Year"
+colnames(data_db)[2] <- "Count_Database"
+data_db['Proportion_Database'] <- data_db$Count_Database/sum(data_db$Count_Database)
+data_frame_d <- merge(data_general, data_db, all = TRUE)
+data_frame_d[is.na(data_frame_d)] <- 0
+data_frame_new_d = data.frame(source= c(rep("General", length(data_frame_d$Year)), rep("Database", length(data_frame_d$Year))), 
+                  year = c(rep(data_frame_d$Year,2)), 
+                  proportion= c(data_frame_d$Proportion_Gen, data_frame_d$Proportion_Database) )
+ggplot(data=data_frame_new_d) +
+ geom_bar(aes(x=year, y = proportion, fill=source), 
+          position="dodge", stat="identity", alpha=0.5) +
+  scale_fill_manual(values = c("mediumblue", "purple"))+
+  theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1),panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Proportion of Year Published Represented in Searches") +
+  ylab("Proportion of Publications") +
+  xlab("") + 
+  scale_y_continuous(limits = c(0, 0.16), expand = expansion(mult = c(0, 0)))
+```
+```{r}
+ggplot(data=data_frame_new_d) +
+ geom_bar(aes(x=year, y = proportion, fill=source), 
+          position="dodge", stat="identity", alpha=0.5) +
+  scale_fill_manual(values = c("mediumblue", "purple"))+
+  theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1),panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Proportion of Year Published Represented in Searches") +
+  ylab("Proportion of Publications") +
+  xlab("") + 
+  scale_y_continuous(limits = c(0, 0.16), expand = expansion(mult = c(0, 0)))
+```
+```{r}
+plott <- ggplot(data_frame_d, aes(x=(Proportion_Gen), y=(Proportion_Database))) + 
+  geom_point( color="#fc2dee") +
+  geom_smooth(method=lm , color="#704b58", fill="#ffabc8", se=TRUE) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1),
+  panel.grid.minor = element_line(size=(0.2), colour="grey"),
+  panel.grid.major = element_line(size=(0.2), colour="grey"),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Year Proportional Representation in Datasets") +
+  xlab("Proportion General Search")+
+  ylab("Proportion Database")
+plott 
+equation_date <- lm(Proportion_Database ~ Proportion_Gen, data_frame_d)
+r2_date = format(summary(equation_date)$r.squared, digits = 3)
+
+```
+Material Cancer Analysis
+We can also look at information like how material names or types of cancer could be in the abstracts. To do this follow the code below. The first part makes material names and types of cancer into a dfm to cross reference with our abstract dfm.
+```{r}
+metal_cancer<- read.csv(file = file.choose()) [ ,c('material', 'cancer')]    # Step 1 read in csv column of interest
+metal<- metal_cancer$material
+#Create a docs by using corpus 
+mymetalcorpus <- corpus(paste(metal, collapse = " "))
+token_metal <-
+  tokens(
+    mymetalcorpus,
+    remove_numbers = TRUE,
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    split_hyphens = TRUE,
+    include_docvars = TRUE
+  )
+metaldfm <- dfm(token_metal,
+            tolower = FALSE,
+)
+metaldfm <- convert(metaldfm, to = "data.frame")
+```
+Now we must try to only search for material in the abstracts
+```{r}
+# Load in the material information and compare with our tokens
+metaldata <- metal
+token2 <- tokens_select(token_Gen, pattern = metaldata, padding = FALSE)  # This will only select tokens that match with the list we added in
+# Clean tokens and prepare for visualization
+token2_clean <- tokens_select(
+  token2,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+mydfmWoS <- dfm(token2_clean,
+             tolower = TRUE,             # This makes it not case sensitive
+)
+
+tstatWoS<-textstat_frequency(mydfmWoS)
+# proportional data
+mydfmWoS_prop <- dfm_weight(mydfmWoS, scheme = "prop")
+tstatWoS_prop<-textstat_frequency(mydfmWoS_prop)
+
+dfmWoS_dataframe <- convert(mydfmWoS, to = "data.frame")
+
+tokenRE <- tokens_select(token_research, pattern = metaldata, padding = FALSE)  # This will only select tokens that match with the list we added in
+# Clean tokens and prepare for visualization
+tokenRE_clean <- tokens_select(
+  tokenRE,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+mydfmRE <- dfm(tokenRE_clean,
+             tolower = TRUE,             # This makes it not case sensitive
+)
+tstatRE<-textstat_frequency(mydfmRE)
+# proportional data
+mydfmRE_prop <- dfm_weight(mydfmRE, scheme = "prop")
+tstatRE_prop<-textstat_frequency(mydfmRE_prop)
+dfmRE_dataframe <- convert(mydfmRE, to = "data.frame")
+```
+
+We can visualize the material names used in the abstracts now by plotting them using the package ggplot2
+```{r}
+# Plot WoS
+ggplot(tstatWoS[1:14, ], aes(x = reorder(feature, -docfreq), y = docfreq))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(x = "Term", y = "Document Count", title = "Frequency of Material Names General Search")
+# Plot research
+ggplot(tstatRE[1:10, ], aes(x = reorder(feature, -docfreq), y = docfreq))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(x = "Term", y = "Document Count", title = "Frequency of Material Names Database")
+```
+```{r}
+legend_colors <- c("General Search"="purple", "Database"="mediumblue")
+tstatWoS$proportional_docfreq <- tstatWoS$docfreq/sum(tstatWoS$docfreq)  # prop of x material over total materials
+tstatRE$proportional_docfreq <- tstatRE$docfreq/sum(tstatRE$docfreq) # prop of x material over total materials
+ggplot(NULL, aes(x = reorder(feature, -proportional_docfreq), y = proportional_docfreq)) + 
+  geom_bar(data = tstatWoS[1:14, ], aes(color="General Search"), fill = NA, stat="identity") +  # general
+  geom_bar(data=tstatRE[1:10, ], aes(color="Database"), fill = NA, stat="identity") +  # research 
+  scale_y_continuous()+ 
+ theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1),panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Proportion of Material Published Represented in Searches") +
+  ylab("Proportion of Publications") +
+  xlab("") + 
+  scale_color_manual(values = legend_colors)+
+  scale_y_continuous(limits = c(0, 0.4), expand = expansion(mult = c(0, 0)))
+```
+
+```{r}
+data_frame_new = data.frame(source= c("General", "General", "General", "General", "General", "General", "General", "General", "General", "General", "General", "General", "General", "General", "Database", "Database", "Database", "Database", "Database", "Database", "Database", "Database", "Database", "Database"), 
+                  frequency = c(tstatWoS[1:14, ]$proportional_docfreq,tstatRE[1:10, ]$proportional_docfreq), 
+                  feature= c(tstatWoS[1:14, ]$feature, tstatRE[1:10, ]$feature) )
+
+ggplot(data=data_frame_new) +
+ geom_bar(aes(x=reorder(feature, -frequency), y=frequency, fill=source), 
+          position="dodge", stat="identity", alpha=0.5) +
+  scale_fill_manual(values = c("mediumblue", "purple"))+
+  theme(legend.position = "right", legend.title=element_blank(), axis.text.x = element_text(angle=90, vjust=.5, hjust=1),panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Proportion of Material Published Represented in Searches") +
+  ylab("Proportion of Publications") +
+  xlab("") + 
+  scale_y_continuous(limits = c(0, 0.4), expand = expansion(mult = c(0, 0)))
+```
+One side will be type of cancer the other will be np material and the color will be number of occurrences
+```{r}
+#Create a docs by using corpus 
+metal_cancer_corpus <- corpus(paste(metal_cancer, collapse = " "))
+token_metal_cancer <-
+  tokens(
+    metal_cancer_corpus,
+    remove_numbers = TRUE,
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    split_hyphens = TRUE,
+    include_docvars = TRUE
+  )
+metal_cancer_dfm <- dfm(token_metal_cancer,
+            tolower = FALSE,
+)
+
+metal_cancer_df <- convert(metal_cancer_dfm, to = "data.frame")
+write.table(metal_cancer_df, file = "~/Desktop/Material_Cancer_List.txt", sep = ",", quote=FALSE) # Write to file 
+# Load in the file with gene list and compare with our tokens
+metal_cancer_data <- scan("~/Desktop/Material_Cancer_List.txt",  character(), sep=",") 
+
+tokenWoS2 <- tokens_select(token_Gen, pattern = metal_cancer_data, padding = FALSE)  # This will only select tokens that match with the list we added in
+# Clean tokens and prepare for visualization
+tokenWoS2_clean <- tokens_select(
+  tokenWoS2,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+
+mydfmWoS2 <- dfm(tokenWoS2_clean,
+             tolower = TRUE,             # This makes it not case sensitive
+)
+
+tstatWoS2<-textstat_frequency(mydfmWoS2)
+# proportional data
+mydfmWoS2_prop <- dfm_weight(mydfmWoS2, scheme = "prop")
+tstatWoS2_prop<-textstat_frequency(mydfmWoS2_prop)
+dfmWoS2_dataframe <- convert(mydfmWoS2, to = "data.frame")
+tokenRE2 <- tokens_select(token_research, pattern = metal_cancer_data, padding = FALSE)  # This will only select tokens that match with the list we added in
+# Clean tokens and prepare for visualization
+tokenRE2_clean <- tokens_select(
+  tokenRE2,
+  c("[\\d-]", "[[:punct:]]", "^.{1,2}$"),
+  selection = "remove",
+  valuetype = "regex",
+  verbose = TRUE
+)
+
+mydfmRE2 <- dfm(tokenRE2_clean,
+             tolower = TRUE,             # This makes it not case sensitive
+)
+tstatRE2<-textstat_frequency(mydfmRE2)
+# proportional data
+mydfmRE2_prop <- dfm_weight(mydfmRE2, scheme = "prop")
+tstatRE2_prop<-textstat_frequency(mydfmRE2_prop)
+dfmRE2_dataframe <- convert(mydfmRE2, to = "data.frame")
+```
+So now we can get combination of any cancer and any material
+17 material and 12 cancer 
+```{r}
+library("stringr")
+material_list <- metal_cancer$material
+cancer_list <- (metal_cancer$cancer[1:12]) #only 12 cancer types
+all_combo <- expand.grid(material=material_list, cancer=cancer_list)
+all_combo$mat <- str_trim(all_combo$material)  # some material have a space so we need to remove any of these
+```
+Now we can use these combinations and count how many papers use the combination of cancer and material
+
+```{r}
+dfmWoS2_dataframe[dfmWoS2_dataframe != 0] <- 1
+dfmWoS2_dataframe[2:length(dfmWoS2_dataframe)][dfmWoS2_dataframe[2:length(dfmWoS2_dataframe)] != 0]<- 1 # replace any big number with only 1
+dfmRE2_dataframe[dfmRE2_dataframe != 0] <- 1
+dfmRE2_dataframe[2:length(dfmRE2_dataframe)][dfmRE2_dataframe[2:length(dfmRE2_dataframe)] != 0]<- 1 # replace any big number with only 1 
+# now we can loop through the all_combo dataframe to collect value of the combinations
+all_combo$sumWoS=0
+all_combo$sumRE=0
+for (i in 1:204) {
+  MATERIAL <- as.vector(all_combo$mat[i])
+  CANCER <- as.vector(all_combo$cancer[i])
+  all_combo$sumWoS[i] <- sum(dfmWoS2_dataframe[MATERIAL]== 1 & dfmWoS2_dataframe[CANCER] == 1)
+  all_combo$sumRE[i] <- tryCatch (sum(dfmRE2_dataframe[MATERIAL]== 1 & dfmRE2_dataframe[CANCER] == 1),
+           error = function(e){"0"
+         })
+}
+all_combo$sumRE <- as.numeric(all_combo$sumRE)
+``` 
+Now we can plot mat v cancer
+```{r}
+tstatWoS$proportional_docfreq <- tstatWoS$docfreq/sum(tstatWoS$docfreq)  # prop of x material over total materials
+tstatRE$proportional_docfreq <- tstatRE$docfreq/sum(tstatRE$docfreq) # prop of x material over total materials
+# make merged df with general and research do prop metals and have research v general search
+metal_DF_WoS2 <- tstatWoS[,c('feature','proportional_docfreq')]
+metal_DF_RE2 <- tstatRE[,c('feature','proportional_docfreq')]
+metal_merge <- inner_join(metal_DF_WoS2, metal_DF_RE2, by=c('feature'='feature'))
+plot <- ggplot(metal_merge, aes(x=log10(proportional_docfreq.x), y=log10(proportional_docfreq.y))) + 
+  geom_point( color="#fc2dee") +
+  geom_smooth(method=lm , color="#704b58", fill="#ffabc8", se=TRUE) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1),
+  panel.grid.minor = element_line(size=(0.2), colour="grey"),
+  panel.grid.major = element_line(size=(0.2), colour="grey"),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Material Proportional Representation in Datasets") +
+  xlab("log10 Proportion General Search")+
+  ylab("log10 Proportion Database")
+plot 
+equation_metal <- lm(log10(proportional_docfreq.y) ~ log10(proportional_docfreq.x), metal_merge)
+r2_metal = format(summary(equation_metal)$r.squared, digits = 3)
+#note: log10 proportion is log10 transformed (count of material) / (count of all materials)
+```
+```{r}
+all_combo$Normalized_Freq_WoS <- all_combo$sumWoS/nrow(dfmWoS_dataframe)*(10/2)
+all_combo$Normalized_Freq_RE <- all_combo$sumRE/nrow(dfmRE_dataframe)
+
+plot2 <- ggplot(all_combo, aes(x=sqrt(Normalized_Freq_WoS), y=sqrt(Normalized_Freq_RE))) + 
+  geom_point( color="#5B1B61") +
+  geom_smooth(method=lm , color="mediumblue", fill="#9543A3", se=TRUE) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1),
+  panel.grid.minor = element_line(size=(0.2), colour="grey"),
+  panel.grid.major = element_line(size=(0.2), colour="grey"),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Metal + Cancer Proportional Representation in Datasets") +
+  ylab("sqrt Proportion General Search")+
+  xlab("sqrt Proportion Database") +
+  xlim(0.04, NA)+
+  ylim(0.04, NA)
+plot2
+sorted_all_combo1 <- all_combo[order(all_combo$sumRE),]
+sorted_all_combo <-  subset(sorted_all_combo1, select = -material) 
+zero_RE_df <- sorted_all_combo[sorted_all_combo$sumRE <= 1,]
+non_zero_RE_df <- unique(sorted_all_combo[sorted_all_combo$sumRE > 1,])
+plot3 <- ggplot() + 
+  geom_point(data=non_zero_RE_df, aes(x = log10(Normalized_Freq_WoS), y = log10(Normalized_Freq_RE)),  color="#fc2dee") +
+  geom_smooth(data=non_zero_RE_df, aes(x = log10(Normalized_Freq_WoS), y = log10(Normalized_Freq_RE)), method=lm , color="#704b58", fill="#ffabc8", se=TRUE)+
+  geom_point(data=zero_RE_df, aes(x = log10(Normalized_Freq_WoS), y = log10(Normalized_Freq_RE)), color="grey") +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1),
+  panel.grid.minor = element_line(size=(0.2), colour="grey"),
+  panel.grid.major = element_line(size=(0.2), colour="grey"),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  axis.line = element_line(colour="black", size = 1),
+  axis.ticks = element_line(colour="black", size = 1)) +
+  ggtitle("Metal + Cancer Proportional Representation in Datasets") +
+  xlab("log10 Proportion General Search")+
+  ylab("log10 Proportion Database") +
+  xlim(-2.5, -1.4)+
+  ylim(-2.75, -1.4) 
+plot3
+log_trans<-data.frame(matrix(nrow = 20, ncol = 0))
+log_trans$Name <-paste( non_zero_RE_df$mat, non_zero_RE_df$cancer, sep = ' ')
+log_trans$WoS <- log10(non_zero_RE_df$Normalized_Freq_WoS)
+log_trans$RE <- log10(non_zero_RE_df$Normalized_Freq_RE)
+plot4 <- ggplot(log_trans, aes(WoS,RE)) +
+  geom_point() +
+  geom_text_repel(aes(label = Name), size = 2) +
+  ggtitle("Metal + Cancer Proportional Representation in Datasets") +
+  xlab("log10 Proportion General Search")+
+  ylab("log10 Proportion Database")
+plot4
+equation_mat_metal <- lm(log10(Normalized_Freq_RE) ~ log10(Normalized_Freq_WoS), non_zero_RE_df)
+r2_mat_metal = format(summary(equation_mat_metal)$r.squared, digits = 3)
+eq_mat_metal = (equation_mat_metal)$coefficients
+```
+```{r}
+general <- Combo_NP_CSV$DOI
+research <- research_NP_CSV$DOI
+library(ggvenn)
+xx = list('General Search'=(general), 'Database'=(research))
+ggvenn(xx, show_percentage=FALSE,  fill_color = c("purple", "mediumblue"))
+```
