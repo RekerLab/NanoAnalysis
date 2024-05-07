@@ -24,9 +24,14 @@ Text mining runs in RStudio Version 2022.12.0+353 using functions from tidyverse
 install.packages(c("tidyverse","quanteda","quanteda.textmodels","quanteda.textplots","quanteda.textstats","ggplot2","ggrepel","tm","cowplot"))
 ```
 
-# Descriptions of folders
+# Descriptions of folders and files
 ### data
-* The available data sources include a curated dataset from the literature, as well as a transformed database that is ready for machine learning training and analysis.
+The available data sources include:
+* Curated dataset from the literature
+* Transformed database ready for machine learning training and analysis
+* Dataset of publications from Pubmed and Web of Science general searches on inorganic cancer nanoparticles
+* Dataset of publications curated by the research team
+* Data on materials and cancer types commonly associated with the inorganic cancer nanoparticle space
 
 ### code
-* This folder includes core functions that underlie the analysis pipeline, along with executable examples for users to run.
+* This folder includes core functions that underlie the analysis pipeline, executable examples for users to run, and an interactive notebook to run text mining analysis.
