@@ -19,6 +19,11 @@ Alternatively, users could implement the analysis on cloud-based platforms with 
 !pip install shap
 ```
 
+Text mining runs in RStudio Version 2022.12.0+353 using functions from tidyverse,  quanteda, tm, ggplot2, ggrepel, and cowplot. All libraries can be installed in Rstudio in the console using
+```
+install.packages(c("tidyverse","quanteda","quanteda.textmodels","quanteda.textplots","quanteda.textstats","ggplot2","ggrepel","tm","cowplot"))
+```
+
 # Descriptions of folders
 ### data
 * The available data sources include a curated dataset from the literature, as well as a transformed database that is ready for machine learning training and analysis.
