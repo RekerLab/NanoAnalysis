@@ -1,6 +1,7 @@
 # NanoAnalysis
 NanoAnalysis is a large scale, ML-driven analysis of inorganic nanoparticles in pre-clinical cancer research.
-
+For more information, please refer to the associated publication: https://www.nature.com/articles/s41565-024-01673-7
+If you use this data or code, lpease kindly cite ` Mendes & Zhang et al. Nature Nanotechnology 19, 867–878 (2024) `
 # Dependencies
 Supervised machine learning runs in Python 3.9 using algorithms from [scikit-learn](https://scikit-learn.org/stable/) and [XGBoost](https://xgboost.readthedocs.io/en/stable/). Explainable AI is dependent on [SHAP](https://github.com/slundberg/shap) analysis. [tqdm](https://github.com/tqdm/tqdm) is a useful tool to visually track your job progress. A fresh conda environment can be set up using
 
